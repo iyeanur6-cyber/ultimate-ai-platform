@@ -27,7 +27,7 @@ public class SwaggerConfig {
                         .version("0.1.0-SNAPSHOT")
                         .contact(new Contact()
                                 .name("Sujan")
-                                .url("https://github.com/sujankim/Ultimate-ai-platform")
+                                .url("https://github.com/iyeanur6-cyber/Ultimate-ai-platform")
                         )
                         .license(new License()
                                 .name("Apache 2.0")

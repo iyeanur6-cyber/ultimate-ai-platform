@@ -101,7 +101,7 @@ public class SystemCommands {
                 + "Spring Shell:  4.0\n"
                 + "Java:          21\n"
                 + "GitHub:        "
-                + "github.com/sujankim/Ultimate-ai-platform\n";
+                + "github.com/iyeanur6-cyber/Ultimate-ai-platform\n";
     }
 
     @Command(
@@ -182,7 +182,7 @@ public class SystemCommands {
                 + "  Java 21        | Spring Boot 4.0.6\n"
                 + "  Spring AI 2.0  | Spring Shell 4.0\n\n"
                 + "GitHub:\n"
-                + "  github.com/sujankim/Ultimate-ai-platform\n\n"
+                + "  github.com/iyeanur6-cyber/Ultimate-ai-platform\n\n"
                 + "License: Apache-2.0\n\n"
                 + "Your AI. Your Data. Your Machine.\n";
     }
