@@ -13,7 +13,7 @@ The diagram below shows the complete request flow from user input to AI response
 ```text
 User (CLI)
     ↓
-Spring Shell 4.0 (jarvis:> prompt)
+Spring Shell 4.0 (UltimateAI:> prompt)
     ↓
 ChatStreamController
 (POST /api/v1/chat/stream)
