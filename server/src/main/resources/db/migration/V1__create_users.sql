@@ -1,6 +1,6 @@
 -- ═══════════════════════════════════════════════════
 -- V1: Create Users Table
--- Users of this Jarvis instance.
+-- Users of this Ultimate instance.
 -- First user created = admin.
 -- ═══════════════════════════════════════════════════
 
@@ -59,7 +59,7 @@ CREATE TRIGGER trigger_users_updated_at
     EXECUTE FUNCTION update_updated_at_column();
 
 COMMENT ON TABLE users IS
-    'Jarvis platform users. First user created becomes admin.';
+    'Ultimate platform users. First user created becomes admin.';
 COMMENT ON COLUMN users.password_hash IS
     'Argon2id hashed password. Never store plain text.';
 COMMENT ON COLUMN users.role IS

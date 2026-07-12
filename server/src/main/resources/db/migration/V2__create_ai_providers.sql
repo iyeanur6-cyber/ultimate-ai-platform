@@ -1,6 +1,6 @@
 -- ═══════════════════════════════════════════════════
 -- V2: Create AI Providers Table
--- Configures which AI models Jarvis can use.
+-- Configures which AI models Ultimate can use.
 -- Seeded in V8 with Ollama + Gemini defaults.
 -- ═══════════════════════════════════════════════════
 

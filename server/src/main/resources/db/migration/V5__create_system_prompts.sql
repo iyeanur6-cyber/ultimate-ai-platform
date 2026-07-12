@@ -1,7 +1,7 @@
 -- ═══════════════════════════════════════════════════
 -- V5: Create System Prompts Table
--- Reusable system prompts (Jarvis personalities).
--- Seeded in V8 with default Jarvis prompt.
+-- Reusable system prompts (Ultimate personalities).
+-- Seeded in V8 with default Ultimate prompt.
 -- ═══════════════════════════════════════════════════
 
 CREATE TABLE system_prompts (
@@ -37,6 +37,6 @@ CREATE TRIGGER trigger_system_prompts_updated_at
     EXECUTE FUNCTION update_updated_at_column();
 
 COMMENT ON TABLE system_prompts IS
-    'Reusable system prompts defining Jarvis personality modes.';
+    'Reusable system prompts defining Ultimate personality modes.';
 COMMENT ON COLUMN system_prompts.content IS
     'Supports template variables: {username}, {datetime}, {model}';

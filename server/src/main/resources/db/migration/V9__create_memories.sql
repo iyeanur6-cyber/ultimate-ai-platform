@@ -2,12 +2,12 @@
 -- V9: Create Memories Table
 -- Phase 2: Memory System
 --
--- Stores long-term facts Jarvis learns about users
+-- Stores long-term facts Ultimate learns about users
 -- across all sessions.
 --
 -- Memory Types:
 --   FACT       → "User's name is Dravin"
---   GOAL       → "User is building Jarvis platform"
+--   GOAL       → "User is building Ultimate platform"
 --   PREFERENCE → "User prefers detailed explanations"
 --   CONTEXT    → "User uses Windows 11, 16GB RAM"
 --   EVENT      → "User published first article June 2026"
@@ -116,7 +116,7 @@ CREATE TRIGGER trigger_memories_updated_at
 -- ── Comments ──────────────────────────────────────
 
 COMMENT ON TABLE memories IS
-    'Long-term memories Jarvis learns about users.
+    'Long-term memories Ultimate learns about users.
      Used in Phase 2 to personalize AI responses.
      Injected into prompts based on importance score.';
 

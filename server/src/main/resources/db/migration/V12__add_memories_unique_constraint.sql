@@ -14,8 +14,8 @@
 -- check becomes a fast-path optimization only.
 --
 -- WHY LOWER(TRIM(content)):
--- "User is building Jarvis" and
--- "user is building jarvis " are the same memory.
+-- "User is building Ultimate" and
+-- "user is building Ultimate " are the same memory.
 -- Normalize before comparing.
 -- ═══════════════════════════════════════════════════
 

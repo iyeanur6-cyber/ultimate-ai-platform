@@ -10,7 +10,7 @@
 -- 1. User asks: "What coding project am I working on?"
 -- 2. Embed the question → [0.45, 0.12, 0.88, ...]
 -- 3. Find memories with similar embedding vectors
--- 4. Returns: "User is building Jarvis AI Platform"
+-- 4. Returns: "User is building Ultimate AI Platform"
 --    even though words don't match exactly
 -- ═══════════════════════════════════════════════════
 
@@ -85,7 +85,7 @@ COMMENT ON FUNCTION search_memories_by_embedding IS
     'Finds semantically similar memories using cosine distance.
      Lower <=> distance = higher similarity.
      Returns top N memories above min_similarity threshold.
-     Used by Jarvis to inject relevant context into prompts.';
+     Used by Ultimate to inject relevant context into prompts.';
 
 COMMENT ON COLUMN memories.embedding IS
     'vector(768) embedding from Ollama nomic-embed-text.

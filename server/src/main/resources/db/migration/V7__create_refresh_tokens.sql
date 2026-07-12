@@ -50,4 +50,4 @@ COMMENT ON TABLE refresh_tokens IS
 COMMENT ON COLUMN refresh_tokens.token_hash IS
     'SHA-256 hash of the actual refresh token. Never store plain token.';
 COMMENT ON COLUMN refresh_tokens.device_info IS
-    'e.g. "Jarvis CLI v0.1.0 / Windows 11" for session management UI.';
+    'e.g. "Ultimate CLI v0.1.0 / Windows 11" for session management UI.';

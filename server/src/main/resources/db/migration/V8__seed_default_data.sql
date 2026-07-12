@@ -99,9 +99,9 @@ INSERT INTO system_prompts (
     is_active
 ) VALUES (
              '018e8f7a-0002-7000-8000-000000000001',
-             'jarvis-default',
-             'Jarvis — Default Assistant',
-             'You are Jarvis, an intelligent personal AI assistant.
+             'Ultimate-default',
+             'Ultimate — Default Assistant',
+             'You are Ultimate, an intelligent personal AI assistant.
 
          You are running locally on {username}''s machine.
          Current date and time: {datetime}
@@ -126,7 +126,7 @@ INSERT INTO system_prompts (
          - Never pretend to have real-time data unless a tool provides it
          - Protect user privacy — do not repeat sensitive information
          - If asked to do something harmful, decline politely',
-             'Default Jarvis personality. Professional, helpful, honest.',
+             'Default Ultimate personality. Professional, helpful, honest.',
              TRUE,
              TRUE
          );
@@ -142,9 +142,9 @@ INSERT INTO system_prompts (
     is_active
 ) VALUES (
              '018e8f7a-0002-7000-8000-000000000002',
-             'jarvis-coding',
-             'Jarvis — Coding Assistant',
-             'You are Jarvis in coding assistant mode.
+             'Ultimate-coding',
+             'Ultimate — Coding Assistant',
+             'You are Ultimate in coding assistant mode.
 
          User: {username} | Time: {datetime} | Model: {model}
 
@@ -163,7 +163,7 @@ INSERT INTO system_prompts (
          Current tech stack context:
          - Java 23, Spring Boot 4, Spring AI 2.0
          - WebFlux (reactive), R2DBC, PostgreSQL
-         - This is the Jarvis AI Platform project',
+         - This is the Ultimate AI Platform project',
              'Optimized for coding assistance and code review.',
              FALSE,
              TRUE

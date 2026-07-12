@@ -32,5 +32,5 @@ END $$;
 
 COMMENT ON EXTENSION vector IS
     'pgvector: vector similarity search for PostgreSQL.
-     Used by Jarvis Phase 2 for semantic memory search.
+     Used by Ultimate Phase 2 for semantic memory search.
      Enables finding memories by meaning, not just keywords.';
