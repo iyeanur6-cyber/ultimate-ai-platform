@@ -32,8 +32,8 @@ build/
 ### VS Code ###
 .vscode/
 
-### Jarvis Shell History ###
+### Ultimate Shell History ###
 # Spring Shell saves command history locally
 # This file is personal to each developer's machine
-.jarvis-history
-*.jarvis-history
+.Ultimate-history
+*.Ultimate-history

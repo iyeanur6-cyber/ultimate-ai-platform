@@ -21,7 +21,7 @@
         Modular, local-first, open-source AI assistant
         platform. Built with Spring Boot 4 and Spring AI 2.
     </description>
-    <url>https://github.com/sujankim/Ultimate-ai-platform</url>
+    <url>https://github.com/iyeanur6-cyber/Ultimate-ai-platform</url>
 
     <licenses>
         <license>
@@ -32,9 +32,9 @@
 
     <developers>
         <developer>
-            <id>sujankim</id>
+            <id>iyeanur6-cyber</id>
             <name>Sujan</name>
-            <url>https://github.com/sujankim</url>
+            <url>https://github.com/iyeanur6-cyber</url>
             <roles>
                 <role>lead</role>
                 <role>developer</role>
@@ -44,13 +44,13 @@
 
     <scm>
         <connection>
-            scm:git:git://github.com/sujankim/Ultimate-ai-platform.git
+            scm:git:git://github.com/iyeanur6-cyber/Ultimate-ai-platform.git
         </connection>
         <developerConnection>
-            scm:git:ssh://git@github.com/sujankim/Ultimate-ai-platform.git
+            scm:git:ssh://git@github.com/iyeanur6-cyber/Ultimate-ai-platform.git
         </developerConnection>
         <tag>HEAD</tag>
-        <url>https://github.com/sujankim/Ultimate-ai-platform</url>
+        <url>https://github.com/iyeanur6-cyber/Ultimate-ai-platform</url>
     </scm>
 
     <properties>
