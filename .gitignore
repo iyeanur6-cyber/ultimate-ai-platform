@@ -1,0 +1,44 @@
+# ═══════════════════════════════════════
+# JARVIS AI PLATFORM — .gitignore
+# ═══════════════════════════════════════
+
+# ── Secrets (NEVER commit these) ────────
+.env
+*.env
+.env.*
+!.env.example
+application-local.yml
+application-secrets.yml
+secrets/
+keys/
+
+# ── Jarvis local config ──────────────────
+# Each user's config is personal
+# ~/.jarvis/ is outside the repo anyway
+# But just in case someone puts it here:
+.jarvis/
+
+# ── Maven ────────────────────────────────
+target/
+*.class
+*.jar
+!**/test-fixtures/**/*.jar
+
+# ── IDE files ────────────────────────────
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ── Logs ─────────────────────────────────
+*.log
+logs/
+
+# ── OS files ─────────────────────────────
+.DS_Store
+desktop.ini.jarvis-history
+.jarvis-history
+*.jarvis-history

@@ -1,0 +1,36 @@
+# ═══════════════════════════════════════════════════
+# JARVIS AI PLATFORM — Development Docker Compose
+# For development: only external services in Docker
+# Spring Boot runs directly for fast restart
+#
+# Usage:
+#   docker-compose -f docker-compose-dev.yml up -d
+# ═══════════════════════════════════════════════════
+
+services:
+
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: jarvis-postgres-dev
+    environment:
+      POSTGRES_DB: jarvis
+      POSTGRES_USER: jarvis
+      POSTGRES_PASSWORD: jarvis
+    ports:
+      - "5433:5432"
+    volumes:
+      - jarvis-postgres-dev-data:/var/lib/postgresql/data
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: jarvis-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@jarvis.local
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+
+volumes:
+  jarvis-postgres-dev-data:

@@ -1,0 +1,283 @@
+spring:
+  application:
+    name: jarvis-ai-platform
+
+  autoconfigure:
+    exclude:
+        # Excluded because GoogleGenAiChatAutoConfiguration
+        # throws IllegalStateException when api-key is empty.
+        # GeminiProvider manages its own client manually
+        # when GEMINI_API_KEY is set.
+        - org.springframework.ai.model.google.genai.autoconfigure.chat.GoogleGenAiChatAutoConfiguration
+
+  # ── Database (R2DBC) ──────────────────────────────
+  r2dbc:
+    url: ${DATABASE_URL:r2dbc:postgresql://localhost:5433/jarvis}
+    username: ${DATABASE_USERNAME:jarvis}
+    password: ${DATABASE_PASSWORD:jarvis}
+    pool:
+      initial-size: 3
+      max-size: 15
+      max-idle-time: 30m
+      validation-query: SELECT 1
+
+  # ── JDBC DataSource (for Flyway + pgvector) ───────
+  datasource:
+    url: ${FLYWAY_URL:jdbc:postgresql://localhost:5433/jarvis}
+    username: ${DATABASE_USERNAME:jarvis}
+    password: ${DATABASE_PASSWORD:jarvis}
+    driver-class-name: org.postgresql.Driver
+
+  # ── Database Migrations (Flyway) ──────────────────
+  flyway:
+    enabled: true
+    url: ${FLYWAY_URL:jdbc:postgresql://localhost:5433/jarvis}
+    user: ${DATABASE_USERNAME:jarvis}
+    password: ${DATABASE_PASSWORD:jarvis}
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    validate-on-migrate: true
+    out-of-order: false
+
+  # ── Redis (Phase 2) ───────────────────────────────
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 2
+
+  # ── Spring AI ─────────────────────────────────────
+  ai:
+    ollama:
+      base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+      chat:
+        model: ${OLLAMA_MODEL:llama3.1:8b}
+        temperature: 0.7
+        num-predict: 2048
+      embedding:
+        model: nomic-embed-text
+
+  # ── MCP Server (Phase 4 Session 3) ───────────
+    mcp:
+      server:
+        # Expose Jarvis tools as MCP server
+        # External clients (Claude Desktop, IDEs)
+        # can connect and use Jarvis tools
+        enabled: true
+        name: jarvis-ai-platform
+        version: 0.1.0
+        # stdio = standard input/output transport
+        # Used by Claude Desktop + most MCP clients
+        type: SYNC
+
+    google:
+      genai:
+        # Set GEMINI_API_KEY in .env to enable Gemini
+        api-key: ${GEMINI_API_KEY:}
+        chat:
+          model: ${GEMINI_MODEL:gemini-3.5-flash}
+          temperature: 0.7
+          max-output-tokens: 2048
+
+    vectorstore:
+      pgvector:
+        enabled: true
+        index-type: hnsw
+        distance-type: cosine_distance
+        dimensions: 768
+        initialize-schema: false
+
+  # ── Spring Shell ──────────────────────────────────
+  main:
+    web-application-type: reactive
+    banner-mode: off
+    log-startup-info: false
+  shell:
+    interactive:
+      enabled: true
+    terminal:
+      force-interactive: true
+    history:
+      enabled: true
+      name: .jarvis-history
+
+# ═══════════════════════════════════════════════════
+# JARVIS CUSTOM CONFIGURATION
+# ═══════════════════════════════════════════════════
+jarvis:
+  version: "0.1.0"
+
+  security:
+    jwt:
+      secret: ${JARVIS_JWT_SECRET}
+      access-token-expiry: 15m
+      refresh-token-expiry: 7d
+      issuer: jarvis-ai-platform
+
+    rate-limiting:
+      enabled: true
+      chat-requests-per-minute: 30
+      auth-attempts-per-minute: 5
+      admin-requests-per-minute: 10
+
+    argon2:
+      memory: 65536
+      iterations: 3
+      parallelism: 1
+      hash-length: 32
+      salt-length: 16
+
+  ai:
+    primary-provider: ollama
+    fallback-provider: gemini
+    provider-health-check-timeout: 3s
+
+    streaming:
+      timeout: 120s
+      buffer-size: 1
+
+    context:
+      max-tokens: 8000
+      reserve-for-response: 2000
+      summarize-threshold: 25
+      summarize-batch-size: 20
+      min-messages-to-keep: 6
+
+    guardrails:
+      max-input-length: 10000
+      injection-detection-enabled: true
+
+  cli:
+    config-dir: ${user.home}/.jarvis
+    log-dir: ${user.home}/.jarvis/logs
+    tokens-file: ${user.home}/.jarvis/auth.json
+    session-file: ${user.home}/.jarvis/session.json
+    preferences-file: ${user.home}/.jarvis/preferences.json
+
+  observability:
+    log-ai-requests: true
+    log-token-usage: true
+    log-provider-selection: true
+    performance-summary-interval: 5m
+
+    # ── Tool Engine (Phase 4) ──────────────────────
+    tools:
+      weather:
+        # Get free key at: https://openweathermap.org/
+        # 1000 calls/day free tier
+        # Leave empty to disable weather tool
+        api-key: ${OPENWEATHER_API_KEY:}
+
+      web-search:
+        # DuckDuckGo — no API key needed
+        enabled: true
+        max-results: 3
+
+  # ── Voice Assistant (Phase 5) ─────────────────
+  voice:
+    whisper:
+      # Transcription backend — two options:
+      #
+      # Option 1: Groq API (recommended)
+      # Get free key: console.groq.com
+      # 6000 requests/day free tier
+      base-url: ${JARVIS_WHISPER_BASE_URL:https://api.groq.com/openai/v1}
+      api-key: ${GROQ_API_KEY:}
+      model: ${JARVIS_WHISPER_MODEL:whisper-large-v3-turbo}
+      #
+      # Option 2: Local whisper.cpp server
+      # Setup: github.com/ggerganov/whisper.cpp
+      # Run server on port 8178, then set:
+      # base-url: http://localhost:8178
+      # api-key: not-needed
+
+    tts:
+      # System TTS — zero setup required
+      # Windows: PowerShell System.Speech
+      # macOS:   say command
+      # Linux:   espeak or text2wave
+      enabled: true
+      # Voice gender/name selection
+      # Windows: "Microsoft Zira Desktop" (female)
+      #          "Microsoft David Desktop" (male)
+      #          "Microsoft Mark Desktop" (male)
+      # macOS:   "Samantha" (female), "Alex" (male)
+      #          "Victoria" (female), "Tom" (male)
+      # Linux:   "en+f3" (female), "en+f4" (female)
+      #          "en" (male default)
+      voice: ${JARVIS_VOICE_NAME:}
+      # Speed: 1.0 = normal, 1.5 = faster, 0.8 = slower
+      speed: ${JARVIS_VOICE_SPEED:1.0}
+
+# ═══════════════════════════════════════════════════
+# ACTUATOR
+# ═══════════════════════════════════════════════════
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,loggers,prometheus
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+      probes:
+        enabled: false
+  info:
+    env:
+      enabled: true
+  metrics:
+    tags:
+      application: jarvis-ai-platform
+
+# ═══════════════════════════════════════════════════
+# SWAGGER API
+# ═══════════════════════════════════════════════════
+springdoc:
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+    display-request-duration: true
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  show-actuator: false
+
+# ═══════════════════════════════════════════════════
+# LOGGING
+# ═══════════════════════════════════════════════════
+logging:
+  level:
+    ai.jarvis: WARN
+    org.springframework: WARN
+    io.r2dbc: WARN
+    org.flywaydb: WARN
+    reactor.netty: WARN
+    org.springframework.r2dbc: WARN
+  file:
+    name: ${user.home}/.jarvis/logs/jarvis.log
+  logback:
+    rollingpolicy:
+      max-file-size: 50MB
+      max-history: 30
+      total-size-cap: 500MB
+
+# ═══════════════════════════════════════════════════
+# APP INFO
+# ═══════════════════════════════════════════════════
+info:
+  app:
+    name: Jarvis AI Platform
+    version: "@project.version@"
+    description: "Local-first, open-source AI assistant"
+    java-version: "@java.version@"
+  links:
+    github: "https://github.com/sujankim/jarvis-ai-platform"
+    docs: "https://github.com/sujankim/jarvis-ai-platform/docs"

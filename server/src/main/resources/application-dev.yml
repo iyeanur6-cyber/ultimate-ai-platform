@@ -1,0 +1,27 @@
+---
+# ═══════════════════════════════════════════════════
+# DEV PROFILE OVERRIDES
+# ═══════════════════════════════════════════════════
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+  devtools:
+    restart:
+      enabled: true
+
+logging:
+  level:
+    ai.jarvis: DEBUG
+    org.springframework.security: DEBUG
+
+springdoc:
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+
+---

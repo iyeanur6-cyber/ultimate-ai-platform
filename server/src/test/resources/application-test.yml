@@ -1,0 +1,34 @@
+# ═══════════════════════════════════════════════════
+# JARVIS AI PLATFORM — Test Configuration
+# Loaded when spring.profiles.active=test
+# ═══════════════════════════════════════════════════
+
+spring:
+
+  # Disable Spring Shell interactive mode
+  # Without this: Shell tries to start terminal
+  # in CI where there is no terminal → job canceled
+  shell:
+    interactive:
+      enabled: false
+
+  # No Spring banner in test output
+  main:
+    banner-mode: off
+    log-startup-info: false
+
+  ai:
+    google:
+      genai:
+        # FIX: was "spring.ai.google.api-key"
+        # Correct full path matches application.yml
+        api-key: ""
+
+# Suppress unnecessary logging during tests
+logging:
+  level:
+    ai.jarvis: WARN
+    org.springframework: WARN
+    io.r2dbc: WARN
+    org.flywaydb: WARN
+    reactor.netty: WARN

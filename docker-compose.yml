@@ -1,0 +1,61 @@
+# ═══════════════════════════════════════════════════
+# JARVIS AI PLATFORM — Docker Compose
+# Production-like local setup
+#
+# Usage:
+#   Start:   docker-compose up -d
+#   Stop:    docker-compose down
+#   Logs:    docker-compose logs -f
+#   Reset:   docker-compose down -v (DELETES ALL DATA)
+# ═══════════════════════════════════════════════════
+
+services:
+
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: jarvis-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: jarvis
+      POSTGRES_USER: jarvis
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-jarvis}
+    ports:
+      - "5433:5432"
+    volumes:
+      - jarvis-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jarvis -d jarvis"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - jarvis-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: jarvis-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - jarvis-redis-data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - jarvis-network
+
+volumes:
+  jarvis-postgres-data:
+    driver: local
+  jarvis-redis-data:
+    driver: local
+
+networks:
+  jarvis-network:
+    driver: bridge
+    name: jarvis-network

@@ -1,0 +1,61 @@
+version: 2
+
+updates:
+
+  # ── Maven Dependencies ──────────────────────────
+  - package-ecosystem: "maven"
+    directory: "/server"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+
+    open-pull-requests-limit: 10
+
+    labels:
+      - dependencies
+      - automated
+
+    commit-message:
+      prefix: chore
+      include: scope
+
+    groups:
+      spring-dependencies:
+        patterns:
+          - "org.springframework*"
+
+      spring-ai:
+        patterns:
+          - "org.springframework.ai*"
+
+      testcontainers:
+        patterns:
+          - "org.testcontainers*"
+
+  # ── GitHub Actions ──────────────────────────────
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+
+    labels:
+      - dependencies
+      - github-actions
+
+    commit-message:
+      prefix: chore
+      include: scope
+
+    ignore:
+      # Prevent Dependabot from opening future major-version PRs
+      # while contributors work on the current upgrades.
+      - dependency-name: "actions/checkout"
+        versions:
+          - "8.x"
+          - "9.x"
+
+      - dependency-name: "actions/upload-artifact"
+        versions:
+          - "8.x"
+          - "9.x"

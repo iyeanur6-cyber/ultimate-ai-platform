@@ -1,0 +1,24 @@
+# ═══════════════════════════════════════════════════
+# PROD PROFILE OVERRIDES
+# ═══════════════════════════════════════════════════
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+logging:
+  level:
+    ai.jarvis: INFO
+    root: WARN
+
+springdoc:
+  swagger-ui:
+    enabled: false
+  api-docs:
+    enabled: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
