@@ -10,9 +10,12 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
+import java.nio.channels.SeekableByteChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -259,6 +262,166 @@ class AudioProcessingToolTest {
         assertThat(fixture.executor.commands).isEmpty();
     }
 
+    @Test
+    @DisplayName("rejects aggregate input above the request budget")
+    void shouldRejectAggregateInputAboveRequestBudget() throws IOException {
+        Fixture fixture = fixture("first.wav", "second.wav", "third.wav");
+        makeSparse(fixture.workspace.resolve("first.wav"), 90L * 1024L * 1024L);
+        makeSparse(fixture.workspace.resolve("second.wav"), 90L * 1024L * 1024L);
+        makeSparse(fixture.workspace.resolve("third.wav"), 90L * 1024L * 1024L);
+
+        String result = fixture.tool.processAudio(
+                fixture.workspace.toString(),
+                "first.wav,second.wav,third.wav",
+                "results",
+                "joined",
+                "concatenate",
+                "wav",
+                "",
+                0.0,
+                0.0,
+                0.0);
+
+        assertThat(result).contains("aggregate input limit");
+        assertThat(fixture.executor.commands).isEmpty();
+    }
+
+    @Test
+    @DisplayName("terminates processing when generated output exceeds its byte budget")
+    void shouldTerminateOversizedGeneratedOutput() throws IOException {
+        Path managedRoot = Files.createDirectory(
+                temporaryDirectory.resolve("managed-output-limit"));
+        Path workspace = Files.createDirectory(managedRoot.resolve("workspace"));
+        Files.createDirectory(workspace.resolve("results"));
+        Files.writeString(workspace.resolve("voice.wav"), "voice");
+        FakeProcess oversizedProcess = new FakeProcess(false);
+        AudioProcessingTool.ProcessExecutor executor = (command, environment) -> {
+            Path output = outputPathFrom(command);
+            makeSparse(output, 513L * 1024L * 1024L);
+            return oversizedProcess;
+        };
+        AudioProcessingTool tool = new AudioProcessingTool(
+                managedRoot,
+                executor,
+                () -> Optional.of("sox"));
+
+        String result = tool.processAudio(
+                workspace.toString(), "voice.wav", "results", "normalized",
+                "normalize", "wav", "", -3.0, 0.0, 0.0);
+
+        assertThat(result).contains("generated output limit");
+        assertThat(oversizedProcess.destroyed).isTrue();
+        assertThat(workspace.resolve("results/normalized.wav")).doesNotExist();
+    }
+
+    @Test
+    @DisplayName("sanitizes and caps process diagnostics returned to the model")
+    void shouldSanitizeProcessDiagnostics() throws IOException {
+        Path managedRoot = Files.createDirectory(
+                temporaryDirectory.resolve("managed-diagnostics"));
+        Path workspace = Files.createDirectory(managedRoot.resolve("workspace"));
+        Files.createDirectory(workspace.resolve("results"));
+        Files.writeString(workspace.resolve("voice.wav"), "voice");
+        String diagnostic = "failed at "
+                + workspace.resolve("private.wav")
+                + "\n\u0000"
+                + "x".repeat(2_000);
+        AudioProcessingTool.ProcessExecutor executor = (command, environment) ->
+                new FakeProcess(true, 7, "", diagnostic);
+        AudioProcessingTool tool = new AudioProcessingTool(
+                managedRoot,
+                executor,
+                () -> Optional.of("sox"));
+
+        String result = tool.processAudio(
+                workspace.toString(), "voice.wav", "results", "normalized",
+                "normalize", "wav", "", -3.0, 0.0, 0.0);
+
+        assertThat(result)
+                .contains("SoX exited with code 7")
+                .doesNotContain(workspace.toString())
+                .doesNotContain("\n", "\r", "\u0000");
+        assertThat(result.length()).isLessThan(1_100);
+    }
+
+    @Test
+    @DisplayName("caps caller-controlled duplicate path diagnostics")
+    void shouldCapDuplicatePathDiagnostic() throws IOException {
+        Fixture fixture = fixture("voice.wav");
+        String callerPath = "a".repeat(2_000) + ".wav";
+
+        String result = fixture.tool.processAudio(
+                fixture.workspace.toString(),
+                callerPath + "," + callerPath,
+                "results",
+                "normalized",
+                "normalize",
+                "wav",
+                "",
+                -3.0,
+                0.0,
+                0.0);
+
+        assertThat(result)
+                .contains("Duplicate input path")
+                .doesNotContain(callerPath);
+        assertThat(result.length()).isLessThan(200);
+    }
+
+    @Test
+    @DisplayName("does not publish through an output directory replaced by a symlink")
+    void shouldRejectOutputDirectorySwapBeforePublication() throws IOException {
+        Path managedRoot = Files.createDirectory(
+                temporaryDirectory.resolve("managed-output-swap"));
+        Path workspace = Files.createDirectory(managedRoot.resolve("workspace"));
+        Files.writeString(workspace.resolve("voice.wav"), "voice");
+        Path outputDirectory = Files.createDirectory(workspace.resolve("results"));
+        Path outsideDirectory = Files.createDirectory(
+                temporaryDirectory.resolve("outside-output-swap"));
+
+        AudioProcessingTool.ProcessExecutor executor = (command, environment) -> {
+            Files.writeString(outputPathFrom(command), "processed");
+            Files.delete(outputDirectory);
+            Files.createSymbolicLink(outputDirectory, outsideDirectory);
+            return new FakeProcess(true);
+        };
+        AudioProcessingTool tool = new AudioProcessingTool(
+                managedRoot,
+                executor,
+                () -> Optional.of("sox"));
+
+        String result = tool.processAudio(
+                workspace.toString(), "voice.wav", "results", "normalized",
+                "normalize", "wav", "", -3.0, 0.0, 0.0);
+
+        assertThat(result).contains("Path Restriction");
+        assertThat(outsideDirectory.resolve("normalized.wav")).doesNotExist();
+    }
+
+    private static Path outputPathFrom(List<String> command) {
+        return command.stream()
+                .map(value -> {
+                    try {
+                        return Path.of(value);
+                    } catch (RuntimeException ignored) {
+                        return null;
+                    }
+                })
+                .filter(path -> path != null && path.getFileName() != null)
+                .filter(path -> path.getFileName().toString().startsWith("output-"))
+                .findFirst()
+                .orElseThrow();
+    }
+
+    private static void makeSparse(Path path, long size) throws IOException {
+        try (SeekableByteChannel channel = Files.newByteChannel(
+                path,
+                StandardOpenOption.WRITE)) {
+            channel.position(size - 1);
+            channel.write(ByteBuffer.wrap(new byte[] {0}));
+        }
+    }
+
     private Fixture fixture(String... inputNames) throws IOException {
         return fixture(true, inputNames);
     }
@@ -327,10 +490,24 @@ class AudioProcessingToolTest {
 
     private static final class FakeProcess extends Process {
         private final boolean completes;
+        private final int exitCode;
+        private final byte[] stdout;
+        private final byte[] stderr;
         private boolean destroyed;
 
         private FakeProcess(boolean completes) {
+            this(completes, 0, "stdout ready", "stderr ready");
+        }
+
+        private FakeProcess(
+                boolean completes,
+                int exitCode,
+                String stdout,
+                String stderr) {
             this.completes = completes;
+            this.exitCode = exitCode;
+            this.stdout = stdout.getBytes(StandardCharsets.UTF_8);
+            this.stderr = stderr.getBytes(StandardCharsets.UTF_8);
         }
 
         @Override
@@ -340,12 +517,12 @@ class AudioProcessingToolTest {
 
         @Override
         public InputStream getInputStream() {
-            return new ByteArrayInputStream("stdout ready".getBytes(StandardCharsets.UTF_8));
+            return new ByteArrayInputStream(stdout);
         }
 
         @Override
         public InputStream getErrorStream() {
-            return new ByteArrayInputStream("stderr ready".getBytes(StandardCharsets.UTF_8));
+            return new ByteArrayInputStream(stderr);
         }
 
         @Override
@@ -360,7 +537,7 @@ class AudioProcessingToolTest {
 
         @Override
         public int exitValue() {
-            return 0;
+            return exitCode;
         }
 
         @Override
