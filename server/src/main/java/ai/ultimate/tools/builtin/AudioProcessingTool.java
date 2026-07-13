@@ -141,8 +141,6 @@ public class AudioProcessingTool implements UltimateTool {
         }
 
         Path runtimeDirectory = null;
-        Path publishedOutput = null;
-        boolean completed = false;
         try {
             Files.createDirectories(managedWorkspaceRoot);
             Path allowedRoot = managedWorkspaceRoot.toRealPath();
@@ -202,14 +200,11 @@ public class AudioProcessingTool implements UltimateTool {
                 return "Audio Processing Failure: SoX produced an empty output.";
             }
 
-            moveWithoutOverwrite(canonicalStagedOutput, finalOutput);
-            publishedOutput = finalOutput;
-            completed = true;
-
             String relativeOutput = workspace.relativize(finalOutput).toString();
             String diagnostics = execution.output().isBlank()
                     ? ""
                     : " Diagnostics: " + execution.output();
+            moveWithoutOverwrite(canonicalStagedOutput, finalOutput);
             return "Audio processing completed: "
                     + relativeOutput
                     + "."
@@ -223,13 +218,6 @@ public class AudioProcessingTool implements UltimateTool {
             return "Audio Processing Failure: Processing was interrupted.";
         } finally {
             cleanupRuntime(runtimeDirectory);
-            if (!completed && publishedOutput != null) {
-                try {
-                    Files.deleteIfExists(publishedOutput);
-                } catch (IOException ignored) {
-                    // Best-effort rollback must not hide the original failure.
-                }
-            }
         }
     }
 
