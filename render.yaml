@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: jarvis-ai-api
+    name: ultimate-ai-api
     runtime: java
     buildCommand: "./mvnw clean package -DskipTests"
     startCommand: "java -jar server/target/*.jar"
