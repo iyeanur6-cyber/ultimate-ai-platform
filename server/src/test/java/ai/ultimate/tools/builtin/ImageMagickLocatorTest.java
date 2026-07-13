@@ -26,10 +26,12 @@ class ImageMagickLocatorTest {
                 command -> process);
 
         assertThat(process.destroyed).isTrue();
+        assertThat(process.forciblyDestroyed).isTrue();
     }
 
     private static final class TimedOutProcess extends Process {
         private boolean destroyed;
+        private boolean forciblyDestroyed;
 
         @Override
         public OutputStream getOutputStream() {
@@ -63,12 +65,13 @@ class ImageMagickLocatorTest {
 
         @Override
         public void destroy() {
-            destroyed = true;
+            // Simulate a child that ignores the soft termination request.
         }
 
         @Override
         public Process destroyForcibly() {
             destroyed = true;
+            forciblyDestroyed = true;
             return this;
         }
 
