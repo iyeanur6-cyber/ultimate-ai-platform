@@ -3,6 +3,7 @@ package ai.ultimate.tools;
 import ai.ultimate.ai.provider.OllamaProvider;
 import ai.ultimate.config.TestContainerConfig;
 import ai.ultimate.tools.builtin.CalculatorTool;
+import ai.ultimate.tools.builtin.ChromiumBrowsingTool;
 import ai.ultimate.tools.builtin.DateTimeTool;
 import ai.ultimate.tools.builtin.WeatherTool;
 import ai.ultimate.tools.builtin.WebSearchTool;
@@ -46,7 +47,7 @@ class ToolRegistryIntegrationTest {
      * Number of builtin tools that must be registered.
      * Update this constant when a new builtin tool is added.
      */
-    private static final int EXPECTED_TOOL_COUNT = 4;
+    private static final int EXPECTED_TOOL_COUNT = 5;
 
     @Autowired
     private ToolRegistry toolRegistry;
@@ -76,6 +77,10 @@ class ToolRegistryIntegrationTest {
         assertThat(tools)
                 .as("WebSearchTool must be auto-discovered via @Component")
                 .anyMatch(t -> t instanceof WebSearchTool);
+
+        assertThat(tools)
+                .as("ChromiumBrowsingTool must be auto-discovered via @Component")
+                .anyMatch(t -> t instanceof ChromiumBrowsingTool);
     }
 
     // ── 2. ToolRegistry contains expected tool count ──────────────────────
