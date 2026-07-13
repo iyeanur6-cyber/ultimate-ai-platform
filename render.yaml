@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: jarvis-ai-api
+    runtime: java
+    buildCommand: "./mvnw clean package -DskipTests"
+    startCommand: "java -jar server/target/*.jar"
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+    disk:
+      name: pg-data
+      mountPath: /var/lib/postgresql/data
+      sizeGB: 1
+      
