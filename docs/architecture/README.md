@@ -40,6 +40,7 @@ PostgreSQL
 | ChatStreamController    | Handles SSE streaming to clients            |
 | JwtAuthenticationFilter | Validates JWT on every request              |
 | SessionMemoryService    | Loads conversation history                  |
+| ImageProcessingTool     | Runs bounded ImageMagick jobs in managed workspaces |
 
 ## Architecture Decisions
 

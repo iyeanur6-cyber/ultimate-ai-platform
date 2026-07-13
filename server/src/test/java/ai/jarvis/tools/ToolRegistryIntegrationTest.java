@@ -5,6 +5,7 @@ import ai.ultimate.config.TestContainerConfig;
 import ai.ultimate.tools.builtin.CalculatorTool;
 import ai.ultimate.tools.builtin.ChromiumBrowsingTool;
 import ai.ultimate.tools.builtin.DateTimeTool;
+import ai.ultimate.tools.builtin.ImageProcessingTool;
 import ai.ultimate.tools.builtin.WeatherTool;
 import ai.ultimate.tools.builtin.WebSearchTool;
 import org.junit.jupiter.api.DisplayName;
@@ -47,7 +48,7 @@ class ToolRegistryIntegrationTest {
      * Minimum number of builtin tools that must be registered.
      * More tools may be present when optional tool beans are enabled.
      */
-    private static final int EXPECTED_MIN_TOOL_COUNT = 5;
+    private static final int EXPECTED_MIN_TOOL_COUNT = 6;
 
     @Autowired
     private ToolRegistry toolRegistry;
@@ -81,6 +82,10 @@ class ToolRegistryIntegrationTest {
         assertThat(tools)
                 .as("ChromiumBrowsingTool must be auto-discovered via @Component")
                 .anyMatch(t -> t instanceof ChromiumBrowsingTool);
+
+        assertThat(tools)
+                .as("ImageProcessingTool must be auto-discovered via @Component")
+                .anyMatch(t -> t instanceof ImageProcessingTool);
     }
 
     // ── 2. ToolRegistry contains expected tool count ──────────────────────
