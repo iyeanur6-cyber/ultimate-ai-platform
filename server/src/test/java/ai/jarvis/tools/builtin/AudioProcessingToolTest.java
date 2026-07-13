@@ -380,4 +380,3 @@ class AudioProcessingToolTest {
         }
     }
 }
-
