@@ -174,3 +174,5 @@ Together, we are building:
 * A developer-focused AI ecosystem
 
 🚀 Welcome to the UltimateAI contributor community.
+
+### Owner can reject any PR without any explanation.
