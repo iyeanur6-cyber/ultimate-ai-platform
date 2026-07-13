@@ -45,6 +45,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Supplier;
 
 @Component
 @Slf4j
@@ -76,7 +77,7 @@ public class AudioProcessingTool implements UltimateTool {
 
     private final Path managedWorkspaceRoot;
     private final ProcessExecutor processExecutor;
-    private final SoxLocator soxLocator;
+    private final Supplier<Optional<String>> soxLocator;
 
     public AudioProcessingTool() {
         this(
@@ -90,7 +91,7 @@ public class AudioProcessingTool implements UltimateTool {
     public AudioProcessingTool(
             Path managedWorkspaceRoot,
             ProcessExecutor processExecutor,
-            SoxLocator soxLocator) {
+            Supplier<Optional<String>> soxLocator) {
         this.managedWorkspaceRoot = managedWorkspaceRoot
                 .toAbsolutePath()
                 .normalize();
@@ -156,7 +157,7 @@ public class AudioProcessingTool implements UltimateTool {
             return "Validation Error: " + safeMessage(e);
         }
 
-        Optional<String> soxBinary = soxLocator.locate();
+        Optional<String> soxBinary = soxLocator.get();
         if (soxBinary.isEmpty()) {
             return "Environment Error: SoX executable 'sox' was not found on this host.";
         }
@@ -1169,10 +1170,6 @@ public class AudioProcessingTool implements UltimateTool {
     public interface ProcessExecutor {
         Process start(List<String> command, Map<String, String> environment)
                 throws IOException;
-    }
-
-    public interface SoxLocator {
-        Optional<String> locate();
     }
 
     private static final class DefaultProcessExecutor implements ProcessExecutor {

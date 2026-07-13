@@ -10,6 +10,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.reflect.Modifier;
 import java.nio.ByteBuffer;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.charset.StandardCharsets;
@@ -23,11 +24,12 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DisplayName("AudioProcessingTool Tests")
-class AudioProcessingToolTest {
+public class AudioProcessingToolTest {
 
     @TempDir
     Path temporaryDirectory;
@@ -260,6 +262,18 @@ class AudioProcessingToolTest {
                 .contains("Validation Error")
                 .contains("tempo");
         assertThat(fixture.executor.commands).isEmpty();
+    }
+
+    @Test
+    @DisplayName("exposes the integration-compatible test API requested by the owner")
+    void shouldExposeRequestedTestApi() throws NoSuchMethodException {
+        assertThat(Modifier.isPublic(AudioProcessingToolTest.class.getModifiers()))
+                .isTrue();
+        assertThat(AudioProcessingTool.class.getConstructor(
+                Path.class,
+                AudioProcessingTool.ProcessExecutor.class,
+                Supplier.class))
+                .isNotNull();
     }
 
     @Test
