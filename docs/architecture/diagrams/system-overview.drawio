@@ -7,7 +7,7 @@
           <mxCell id="SCGlZj5swCD9gWGE6OnE-1" parent="1" style="whiteSpace=wrap;strokeWidth=2;fillColor=light-dark(#eeeeee,#1f2020);strokeColor=light-dark(#999999,#cccccc);fontColor=light-dark(#333333,#cccccc);" value="User (CLI)" vertex="1">
             <mxGeometry height="54" width="131" x="102" y="20" as="geometry" />
           </mxCell>
-          <mxCell id="SCGlZj5swCD9gWGE6OnE-2" parent="1" style="whiteSpace=wrap;strokeWidth=2;fillColor=light-dark(#eeeeee,#1f2020);strokeColor=light-dark(#999999,#cccccc);fontColor=light-dark(#333333,#cccccc);" value="Spring Shell 4.0&#xa;(jarvis :&gt; prompt)" vertex="1">
+          <mxCell id="SCGlZj5swCD9gWGE6OnE-2" parent="1" style="whiteSpace=wrap;strokeWidth=2;fillColor=light-dark(#eeeeee,#1f2020);strokeColor=light-dark(#999999,#cccccc);fontColor=light-dark(#333333,#cccccc);" value="Spring Shell 4.0&#xa;(Ultimate :&gt; prompt)" vertex="1">
             <mxGeometry height="78" width="182" x="76" y="124" as="geometry" />
           </mxCell>
           <mxCell id="SCGlZj5swCD9gWGE6OnE-3" parent="1" style="whiteSpace=wrap;strokeWidth=2;fillColor=light-dark(#eeeeee,#1f2020);strokeColor=light-dark(#999999,#cccccc);fontColor=light-dark(#333333,#cccccc);" value="ChatStreamController&#xa;POST /api/v1/chat/stream" vertex="1">
