@@ -194,6 +194,33 @@ class ImageProcessingToolTest {
     }
 
     @Test
+    @DisplayName("rejects watermark text that ImageMagick could treat as a file reference")
+    void shouldRejectWatermarkFileReference() throws IOException {
+        Path managedRoot = Files.createDirectory(temporaryDirectory.resolve("managed"));
+        FakeProcessExecutor executor = new FakeProcessExecutor(true, 0);
+        ImageProcessingTool tool = new ImageProcessingTool(
+                managedRoot,
+                executor,
+                () -> Optional.of("magick"));
+
+        String result = tool.processImages(
+                managedRoot.resolve("workspace").toString(),
+                "photo.jpg",
+                "results",
+                "watermark",
+                "jpg",
+                0,
+                0,
+                "@watermark.txt",
+                90);
+
+        assertThat(result)
+                .contains("Validation Error")
+                .contains("must not start with '@'");
+        assertThat(executor.commands).isEmpty();
+    }
+
+    @Test
     @DisplayName("reports a missing ImageMagick binary without starting a process")
     void shouldReportMissingBinary() throws IOException {
         Path managedRoot = Files.createDirectory(temporaryDirectory.resolve("managed"));

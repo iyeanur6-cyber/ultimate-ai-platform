@@ -289,6 +289,10 @@ public class ImageProcessingTool implements UltimateTool {
                 throw new IllegalArgumentException(
                         "watermarkText must contain at most 200 printable characters.");
             }
+            if (normalizedWatermark.startsWith("@")) {
+                throw new IllegalArgumentException(
+                        "watermarkText must not start with '@'.");
+            }
         }
         if (quality < 1 || quality > 100) {
             throw new IllegalArgumentException("quality must be between 1 and 100.");
@@ -536,9 +540,20 @@ public class ImageProcessingTool implements UltimateTool {
         String command = System.getProperty("os.name")
                 .toLowerCase(Locale.ROOT)
                 .contains("win") ? "where" : "which";
-        for (String candidate : List.of("magick", "convert")) {
+        return locateImageMagickBinary(
+                command,
+                List.of("magick", "convert"),
+                lookupCommand -> new ProcessBuilder(lookupCommand).start());
+    }
+
+    static Optional<String> locateImageMagickBinary(
+            String command,
+            List<String> candidates,
+            LookupProcessStarter processStarter) {
+        for (String candidate : candidates) {
+            Process process = null;
             try {
-                Process process = new ProcessBuilder(command, candidate).start();
+                process = processStarter.start(List.of(command, candidate));
                 if (process.waitFor(5, TimeUnit.SECONDS) && process.exitValue() == 0) {
                     try (BufferedReader reader = new BufferedReader(
                             new InputStreamReader(
@@ -555,6 +570,13 @@ public class ImageProcessingTool implements UltimateTool {
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 return Optional.empty();
+            } finally {
+                if (process != null && process.isAlive()) {
+                    process.destroy();
+                    if (process.isAlive()) {
+                        process.destroyForcibly();
+                    }
+                }
             }
         }
         return Optional.empty();
@@ -567,6 +589,11 @@ public class ImageProcessingTool implements UltimateTool {
 
     public interface ImageMagickLocator {
         Optional<String> locate();
+    }
+
+    @FunctionalInterface
+    interface LookupProcessStarter {
+        Process start(List<String> command) throws IOException;
     }
 
     private record Request(
