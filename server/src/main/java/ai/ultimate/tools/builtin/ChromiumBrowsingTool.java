@@ -9,10 +9,14 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.Inet6Address;
+import java.net.InetAddress;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
@@ -20,6 +24,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -29,11 +34,13 @@ public class ChromiumBrowsingTool implements UltimateTool {
     private static final int MAX_SESSION_CREDITS = 200;
     private static final int MAX_CAPTURED_OUTPUT_CHARS = 50_000;
     private static final Duration BROWSER_TIMEOUT = Duration.ofSeconds(30);
+    private static final Duration SESSION_BUDGET_WINDOW = Duration.ofMinutes(30);
+    private static final String DEFAULT_SESSION_KEY = "chromium-browsing";
     private static final int MAX_URL_LENGTH = 2_048;
     private static final int DEFAULT_WIDTH = 1280;
     private static final int DEFAULT_HEIGHT = 720;
 
-    private final AtomicInteger sessionCreditsUsed = new AtomicInteger();
+    private final ConcurrentHashMap<String, BudgetWindow> sessionBudgets = new ConcurrentHashMap<>();
     private final ProcessExecutor processExecutor;
     private final BrowserBinaryLocator browserBinaryLocator;
 
@@ -64,13 +71,14 @@ public class ChromiumBrowsingTool implements UltimateTool {
             return validationError;
         }
 
-        if (!reserveCredits(processingCredits)) {
-            return "Budget Enforcement: Chromium browsing session refused because the 200 credit workflow cap would be exceeded.";
-        }
-
         Optional<String> browserBinary = browserBinaryLocator.locate();
         if (browserBinary.isEmpty()) {
             return "Environment Error: No Chrome or Chromium executable was found on this host.";
+        }
+
+        String sessionKey = workflowBudgetKey();
+        if (!reserveCredits(sessionKey, processingCredits)) {
+            return "Budget Enforcement: Chromium browsing session refused because the 200 credit workflow cap would be exceeded.";
         }
 
         Path runtimeDir = null;
@@ -109,7 +117,8 @@ public class ChromiumBrowsingTool implements UltimateTool {
 
             boolean completed = runningProcess.waitFor(BROWSER_TIMEOUT.toSeconds(), TimeUnit.SECONDS);
             if (!completed) {
-                runningProcess.destroyForcibly();
+                destroyProcessTree(runningProcess);
+                releaseCredits(sessionKey, processingCredits);
                 return "Watchdog Interdiction: Chromium browsing exceeded the 30 second runtime limit.";
             }
 
@@ -126,19 +135,21 @@ public class ChromiumBrowsingTool implements UltimateTool {
                     screenshotSummary);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+            releaseCredits(sessionKey, processingCredits);
             return "Infrastructure Process Lifecycle Failure: Chromium browsing was interrupted.";
         } catch (Exception e) {
+            releaseCredits(sessionKey, processingCredits);
             return "Infrastructure Process Lifecycle Failure: " + e.getMessage();
         } finally {
-            if (browserProcess != null && browserProcess.isAlive()) {
-                browserProcess.destroyForcibly();
+            if (browserProcess != null) {
+                destroyProcessTree(browserProcess);
             }
             cleanupRuntime(runtimeDir);
         }
     }
 
     void resetSessionBudgetForTests() {
-        sessionCreditsUsed.set(0);
+        sessionBudgets.clear();
     }
 
     private String validateRequest(String url, String captureMode, int processingCredits) {
@@ -150,15 +161,19 @@ public class ChromiumBrowsingTool implements UltimateTool {
             return "Validation Error: URL exceeds the 2048 character safety limit.";
         }
         String lowerUrl = trimmed.toLowerCase(Locale.ROOT);
-        if (!lowerUrl.startsWith("https://") && !lowerUrl.startsWith("http://")) {
-            return "Security Restriction: Only http:// and https:// URLs are allowed.";
-        }
         if (lowerUrl.startsWith("file:")
                 || lowerUrl.startsWith("javascript:")
                 || lowerUrl.startsWith("data:")
                 || lowerUrl.startsWith("chrome:")
                 || lowerUrl.startsWith("devtools:")) {
             return "Security Restriction: Local files, browser internals, data URLs, and script URLs are blocked.";
+        }
+        if (!lowerUrl.startsWith("https://") && !lowerUrl.startsWith("http://")) {
+            return "Security Restriction: Only http:// and https:// URLs are allowed.";
+        }
+        String destinationError = validatePublicDestination(trimmed);
+        if (destinationError != null) {
+            return destinationError;
         }
         String mode = sanitizeCaptureMode(captureMode);
         if (!"dom".equals(mode) && !"screenshot".equals(mode) && !"audit".equals(mode)) {
@@ -170,17 +185,74 @@ public class ChromiumBrowsingTool implements UltimateTool {
         return null;
     }
 
-    private boolean reserveCredits(int processingCredits) {
+    private String validatePublicDestination(String url) {
+        try {
+            URI uri = URI.create(url);
+            String host = uri.getHost();
+            if (host == null || host.isBlank()) {
+                return "Security Restriction: URL host is required.";
+            }
+            InetAddress[] addresses = InetAddress.getAllByName(host);
+            if (addresses.length == 0) {
+                return "Security Restriction: URL host could not be resolved.";
+            }
+            for (InetAddress address : addresses) {
+                if (!isPublicAddress(address)) {
+                    return "Security Restriction: Localhost, private, link-local, multicast, and metadata IP destinations are blocked.";
+                }
+            }
+            return null;
+        } catch (IllegalArgumentException | IOException e) {
+            return "Security Restriction: URL host could not be resolved.";
+        }
+    }
+
+    private boolean isPublicAddress(InetAddress address) {
+        if (address.isAnyLocalAddress()
+                || address.isLoopbackAddress()
+                || address.isLinkLocalAddress()
+                || address.isSiteLocalAddress()
+                || address.isMulticastAddress()) {
+            return false;
+        }
+        if (address instanceof Inet6Address) {
+            byte first = address.getAddress()[0];
+            return (first & 0xfe) != 0xfc;
+        }
+        return true;
+    }
+
+    private boolean reserveCredits(String sessionKey, int processingCredits) {
+        Instant now = Instant.now();
+        BudgetWindow budget = sessionBudgets.compute(sessionKey, (key, existing) -> {
+            if (existing == null || existing.expiresAt.isBefore(now)) {
+                return new BudgetWindow(now.plus(SESSION_BUDGET_WINDOW));
+            }
+            return existing;
+        });
+
         while (true) {
-            int used = sessionCreditsUsed.get();
+            int used = budget.creditsUsed.get();
             int next = used + processingCredits;
             if (next > MAX_SESSION_CREDITS) {
                 return false;
             }
-            if (sessionCreditsUsed.compareAndSet(used, next)) {
+            if (budget.creditsUsed.compareAndSet(used, next)) {
                 return true;
             }
         }
+    }
+
+    private void releaseCredits(String sessionKey, int processingCredits) {
+        BudgetWindow budget = sessionBudgets.get(sessionKey);
+        if (budget == null) {
+            return;
+        }
+        budget.creditsUsed.updateAndGet(used -> Math.max(0, used - processingCredits));
+    }
+
+    private String workflowBudgetKey() {
+        return DEFAULT_SESSION_KEY;
     }
 
     private List<String> buildCommand(
@@ -254,6 +326,22 @@ public class ChromiumBrowsingTool implements UltimateTool {
             return header + encoded.substring(0, available) + "\n[screenshot-truncated]\n";
         }
         return header + encoded + "\n";
+    }
+
+    private void destroyProcessTree(Process process) {
+        try {
+            process.descendants()
+                    .forEach(descendant -> {
+                        if (descendant.isAlive()) {
+                            descendant.destroyForcibly();
+                        }
+                    });
+        } catch (UnsupportedOperationException ignored) {
+            // Some Process fakes used in tests do not expose a ProcessHandle tree.
+        }
+        if (process.isAlive()) {
+            process.destroyForcibly();
+        }
     }
 
     private String formatResult(
@@ -390,6 +478,15 @@ public class ChromiumBrowsingTool implements UltimateTool {
 
         synchronized boolean truncated() {
             return truncated;
+        }
+    }
+
+    private static final class BudgetWindow {
+        private final AtomicInteger creditsUsed = new AtomicInteger();
+        private final Instant expiresAt;
+
+        private BudgetWindow(Instant expiresAt) {
+            this.expiresAt = expiresAt;
         }
     }
 

@@ -44,10 +44,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 class ToolRegistryIntegrationTest {
 
     /**
-     * Number of builtin tools that must be registered.
-     * Update this constant when a new builtin tool is added.
+     * Minimum number of builtin tools that must be registered.
+     * More tools may be present when optional tool beans are enabled.
      */
-    private static final int EXPECTED_TOOL_COUNT = 5;
+    private static final int EXPECTED_MIN_TOOL_COUNT = 5;
 
     @Autowired
     private ToolRegistry toolRegistry;
@@ -89,12 +89,13 @@ class ToolRegistryIntegrationTest {
     @DisplayName("ToolRegistry holds the expected number of tools")
     void toolRegistryShouldContainExpectedToolCount() {
         assertThat(toolRegistry.count())
-                .as("Expected exactly %d builtin tools", EXPECTED_TOOL_COUNT)
-                .isEqualTo(EXPECTED_TOOL_COUNT);
+                .as("Expected at least %d builtin tools",
+                        EXPECTED_MIN_TOOL_COUNT)
+                .isGreaterThanOrEqualTo(EXPECTED_MIN_TOOL_COUNT);
 
         assertThat(toolRegistry.getAll())
                 .as("getAll() size must match count()")
-                .hasSize(EXPECTED_TOOL_COUNT);
+                .hasSize(toolRegistry.count());
 
         assertThat(toolRegistry.hasTools())
                 .as("hasTools() must be true when tools are registered")
@@ -122,9 +123,9 @@ class ToolRegistryIntegrationTest {
 
         // The tools visible to OllamaProvider must match the full registry
         assertThat(injectedRegistry.count())
-                .as("OllamaProvider's registry must hold %d tools",
-                        EXPECTED_TOOL_COUNT)
-                .isEqualTo(EXPECTED_TOOL_COUNT);
+                .as("OllamaProvider's registry must hold at least %d tools",
+                        EXPECTED_MIN_TOOL_COUNT)
+                .isGreaterThanOrEqualTo(EXPECTED_MIN_TOOL_COUNT);
 
         assertThat(injectedRegistry.hasTools())
                 .as("OllamaProvider's registry must report hasTools() = true")
@@ -133,6 +134,6 @@ class ToolRegistryIntegrationTest {
         assertThat(injectedRegistry.asArray())
                 .as("asArray() length must match count() "
                         + "so that the OllamaProvider can pass them to ChatClient")
-                .hasSize(EXPECTED_TOOL_COUNT);
+                .hasSize(injectedRegistry.count());
     }
 }

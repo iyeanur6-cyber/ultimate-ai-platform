@@ -9,6 +9,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -34,7 +36,25 @@ class ChromiumBrowsingToolTest {
 
         assertThat(result)
                 .contains("Security Restriction")
-                .contains("Only http:// and https:// URLs");
+                .contains("Local files, browser internals, data URLs, and script URLs are blocked");
+    }
+
+    @Test
+    @DisplayName("rejects local network destinations")
+    void shouldRejectLocalNetworkDestinations() {
+        ChromiumBrowsingTool tool = new ChromiumBrowsingTool(
+                new FakeProcessExecutor("<html></html>", ""),
+                () -> Optional.of("chrome"));
+
+        String result = tool.browseWithChromium(
+                "http://127.0.0.1:8080",
+                "dom",
+                1,
+                false);
+
+        assertThat(result)
+                .contains("Security Restriction")
+                .contains("Localhost, private, link-local, multicast, and metadata IP destinations are blocked");
     }
 
     @Test
@@ -76,7 +96,8 @@ class ChromiumBrowsingToolTest {
 
         assertThat(result)
                 .contains("Chromium browsing completed")
-                .contains("<html>ok</html>");
+                .contains("<html>ok</html>")
+                .contains("[screenshot] base64 png bytes=");
         assertThat(executor.command)
                 .contains("--headless=new")
                 .contains("--disable-extensions")
@@ -139,10 +160,21 @@ class ChromiumBrowsingToolTest {
         }
 
         @Override
-        public Process start(List<String> command, Map<String, String> environment) {
+        public Process start(List<String> command, Map<String, String> environment)
+                throws IOException {
             this.command = command;
             this.environment = environment;
+            writeFakeScreenshot(command);
             return new FakeProcess(stdout, stderr);
+        }
+
+        private void writeFakeScreenshot(List<String> command) throws IOException {
+            for (String value : command) {
+                if (value.startsWith("--screenshot=")) {
+                    Path screenshotPath = Path.of(value.substring("--screenshot=".length()));
+                    Files.write(screenshotPath, "fake-png".getBytes(StandardCharsets.UTF_8));
+                }
+            }
         }
     }
 
@@ -173,7 +205,7 @@ class ChromiumBrowsingToolTest {
         }
 
         @Override
-        public int waitFor() {
+        public int waitFor() throws InterruptedException {
             return 0;
         }
 
