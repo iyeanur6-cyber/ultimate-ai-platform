@@ -75,7 +75,8 @@ public class AudioProcessingTool implements UltimateTool {
                 .normalize();
         this.processExecutor = processExecutor;
         this.soxLocator = soxLocator;
-	}
+    }
+
     @Tool(description =
             "Process local audio with SoX inside a managed workspace. "
                     + "Supported operations are noise-profile, noise-reduce, normalize, "
