@@ -1,6 +1,18 @@
 export type NavigationItem = 
   | 'chat' 
   | 'projects' 
+export type {
+  ToolIdentifier,
+  TenantContext,
+  WorkspaceAllocation,
+} from '../services/scratchpadManager';
+
+export {
+  getScratchpadManager,
+  resetScratchpadManagerForTests,
+  ScratchpadWorkspaceManager,
+} from '../services/scratchpadManager';
+
   | 'files' 
   | 'memory' 
   | 'tools' 
